@@ -1,3 +1,3 @@
 # ROS
 
-A simple Rust base OS. 
+A simple Rust based OS. 
