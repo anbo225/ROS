@@ -2,7 +2,6 @@ use core::fmt;
 use volatile::Volatile;
 use spin::Mutex;
 
-
 use lazy_static::lazy_static;
 
 lazy_static! {
