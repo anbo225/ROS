@@ -10,6 +10,7 @@ use core::panic::PanicInfo;
 pub mod interrupts;
 pub mod serial;
 pub mod vga_buffer;
+pub mod memory;
 
 pub fn init() {
     interrupts::init_idt();
