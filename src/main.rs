@@ -5,28 +5,24 @@
 #![reexport_test_harness_main = "test_main"]
 
 use ros::println;
-use x86_64::VirtAddr;
 use core::panic::PanicInfo;
 
 use bootloader::BootInfo;
-use ros::memory::{active_level_4_table,translate_addr};
+
 
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
+
+    use ros::memory;
+    use x86_64::{structures::paging::Translate,structures::paging::Page, VirtAddr};
+
     println!("Hello World{}", "!");
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let l4_table = unsafe {
-        active_level_4_table(phys_mem_offset)
-    };
+   
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
 
-    for (i, entry) in l4_table.iter().enumerate() {
-        if !entry.is_unused() {
-           
-            println!("L4 Entry {}: {:?}", i, entry);
-            
-        }
-    }
+    
 
     let addresses = [
         // the identity-mapped vga buffer page
@@ -41,9 +37,19 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
     for &address in &addresses {
         let virt = VirtAddr::new(address);
-        let phys = unsafe { translate_addr(virt, phys_mem_offset) };
+        let phys = mapper.translate_addr(virt);
         println!("{:?} -> {:?}", virt, phys);
     }
+
+    let mut frame_allocator = memory::EmptyFrameAllocator;
+
+    // map an unused page
+    let page = Page::containing_address(VirtAddr::new(0xdeadbeaf000));
+    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+
+    // write the string `New!` to the screen through the new mapping
+    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};
 
 
     // ros::init();
